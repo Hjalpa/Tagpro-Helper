@@ -9,9 +9,11 @@
 // @grant       none
 // ==/UserScript==
 
+
+
+//registers our function with the game by passing it into tagpro.ready when the objects we need are initialized
+//tagpro.ready registers our_function and calls it when the game is ready for userscripts to execute
 function addToTagpro(our_function) {
-    //make sure tagpro.map object and the sprites are initialized, and if so, call tagpro.ready(fn);
-    //tagpro.ready registers our_function and calls it when the game is ready for userscripts to execute
     if (typeof tagpro.map !== "undefined" && typeof tagpro.ui.sprites.redScore !== "undefined") {
         tagpro.ready(our_function);
     } else {
@@ -22,7 +24,9 @@ function addToTagpro(our_function) {
     }
 }
 
-addToTagpro(function () {
+
+//function that will be passed into addToTagpro
+function scriptStartup() {
     //pixi.text object containing the regrab message
 
     //variable to determine in neutral the flag or capture the flag style map
@@ -181,4 +185,7 @@ addToTagpro(function () {
         updateUI.apply(null, arguments);
     };
 
-});
+}
+
+//call addToTagpro
+addToTagpro(scriptStartup);
