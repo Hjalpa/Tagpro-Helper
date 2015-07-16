@@ -27,15 +27,13 @@ function addToTagpro(our_function) {
 
 //function that will be passed into addToTagpro
 function scriptStartup() {
-    //pixi.text object containing the regrab message
-
+    
     //variable to determine in neutral the flag or capture the flag style map
     var neutralFlag = false;
     
     //get parameters of the map
     var xlen = tagpro.map.length;
     var ylen = xlen > 0 ? tagpro.map[0].length : -1;
-    
     
     //returns correct coordinates for enemy flag
     function findRegrabCoords() {
