@@ -4,8 +4,8 @@
 // @version     1.0
 // @include     http://tagpro-*.koalabeast.com:*
 // @include     http://tagpro-maptest.koalabeast.com:*/
-// @include     http://tangent.jukejuice.com:* 
-// @include     http://maptest*.newcompte.fr:* 
+// @include     http://tangent.jukejuice.com:*
+// @include     http://maptest*.newcompte.fr:*
 // @grant       none
 // ==/UserScript==
 
@@ -27,14 +27,14 @@ function addToTagpro(our_function) {
 
 //function that will be passed into addToTagpro
 function scriptStartup() {
-    
+
     //variable to determine in neutral the flag or capture the flag style map
     var neutralFlag = false;
-    
+
     //get parameters of the map
     var xlen = tagpro.map.length;
     var ylen = xlen > 0 ? tagpro.map[0].length : -1;
-    
+
     //returns correct coordinates for enemy flag
     function findRegrabCoords() {
         if (neutralFlag) {
@@ -45,7 +45,7 @@ function scriptStartup() {
             return flag_locations.red;
         }
     }
-    
+
     //object holding flag locations
     var flag_locations = {
         red : {
@@ -70,7 +70,7 @@ function scriptStartup() {
         strokeThickness: 3,
         fill : "#FF0000",
     };
-    
+
     //find flag location for flags
     //the tagpro.map x and y represent tiles that are 40 by 40 pixels
     //To get pixel value, times by 40 to get bottom left corner and add 20 to x and y to get center pixel value
@@ -96,14 +96,14 @@ function scriptStartup() {
     var FCtext = new PIXI.Text("We Need Regrab!", style);
     FCtext.visible = false;
     tagpro.renderer.layers.ui.addChild(FCtext);
-    
+
     //flag starts out in base
     var enemyFlagTaken = false;
-    
+
     //(team -> red = 1, blue = 2), get value from the Player object's team property
     var teamValue = tagpro.players[tagpro.playerId].team;
     var regrabCoords = findRegrabCoords();
-    
+
     //listen for all grabbed/dropped flag updates for player's own team
     tagpro.socket.on("p", function(allupdates) {
         //the property u is an array that contains all updates to be applied to players
@@ -112,7 +112,7 @@ function scriptStartup() {
         allupdates.forEach( function checkflagplayer(update) {
             if (update.hasOwnProperty("flag")) {
                 //use id from update to get team value for the specific player update is applied to get team value of self
-                var playerteam = tagpro.players[update.id].team;            
+                var playerteam = tagpro.players[update.id].team;
                 if (playerteam === teamValue) {
                     if (update.flag) {
                         enemyFlagTaken = true;
@@ -124,7 +124,7 @@ function scriptStartup() {
                     }
                 }
             }
-            
+
             //if player switches team (red = 1, blue = 2), switch teamValue, where 1 becomes 2 and 2 becomes 1
             if (update.hasOwnProperty("team") && update.id === tagpro.playerId) {
                 teamValue = 3 - teamValue;
@@ -132,7 +132,7 @@ function scriptStartup() {
             }
         });
     });
-    
+
     //update x and y so that our regrab sprite is always centered between the red and blue scores
     var alignUI = tagpro.ui.alignUI;
     tagpro.ui.alignUI = function() {
@@ -140,12 +140,12 @@ function scriptStartup() {
         FCtext.y = ((tagpro.ui.sprites.redScore.y + tagpro.ui.sprites.blueScore.y)/2) - (FCtext.height/2);
         alignUI.apply(null, arguments);
     }
-    
+
     //determine what message to display and update our regrab sprite every time the UI updates
     var updateUI = tagpro.ui.update;
     tagpro.ui.update = function(layer, origin) {
         if (enemyFlagTaken) {
-            var foundRe = false;            
+            var foundRe = false;
             //tagpro.players contains 1 Player object for each player, whose unique id is the key inside tagpro.players object
             //loop through the players inside tagpro.players, searching for teammate on "regrab" (within 2 tiles f flag in x and y direction)
             for (var id in tagpro.players) {
@@ -153,12 +153,12 @@ function scriptStartup() {
                     var player = tagpro.players[id];
                     //confirm player is on your team
                     if (player.team === teamValue) {
-                        
+
                         var x_dist = Math.abs(player.x - regrabCoords.x);
                         var y_dist = Math.abs(player.y - regrabCoords.y);
-                        
+
                         var allowableNumTiles = 2;
-                        
+
                         //check to see if player is within allowable number of tiles (40 pixels each) in both x and y directions
                         if (x_dist <= allowableNumTiles*40 && y_dist <= allowableNumTiles*40 && !player.flag) {
                             foundRe = true;
@@ -170,7 +170,7 @@ function scriptStartup() {
                     }
                 }
             }
-           
+
            //if no one is one regrab, update text object and set visible to true
             if (!foundRe) {
                 style.fill = "#FF9900";
