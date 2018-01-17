@@ -20,7 +20,7 @@ function addToTagpro(our_function) {
         //if not ready, wait and try again
         setTimeout(function() {
             addToTagpro(our_function);
-        }, 0);
+        }, 10);
     }
 }
 
@@ -30,21 +30,12 @@ function scriptStartup() {
 
     //variable to determine in neutral the flag or capture the flag style map
     var neutralFlag = false;
+    const red = 1;
+    const blue = 2;
 
     //get parameters of the map
     var xlen = tagpro.map.length;
     var ylen = xlen > 0 ? tagpro.map[0].length : -1;
-
-    //returns correct coordinates for enemy flag
-    function findRegrabCoords() {
-        if (neutralFlag) {
-            return flag_locations.yellow;
-        } else if (teamValue === 1) { //1 represents on red team, so return location of enemy flag (blue)
-            return flag_locations.blue;
-        } else { //else player is on blue, return red flag location
-            return flag_locations.red;
-        }
-    }
 
     //object holding flag locations
     var flag_locations = {
@@ -62,14 +53,20 @@ function scriptStartup() {
         }
     };
 
-    //object used to set Pixi text object style
-    var style = {
-        font: "bold 10pt Arial",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 3,
-        fill : "#FF0000",
-    };
+    //(team -> red = 1, blue = 2), get value from the Player object's team property
+    var teamValue = tagpro.players[tagpro.playerId].team;
+    var regrabCoords = findRegrabCoords(teamValue);
+
+    //returns correct coordinates for enemy flag
+    function findRegrabCoords(teamValue) {
+        if (neutralFlag) {
+            return flag_locations.yellow;
+        } else if (teamValue === red) { //1 represents on red team, so return location of enemy flag (blue)
+            return flag_locations.blue;
+        } else { //else player is on blue, return red flag location
+            return flag_locations.red;
+        }
+    }
 
     //find flag location for flags
     //the tagpro.map x and y represent tiles that are 40 by 40 pixels
@@ -92,6 +89,15 @@ function scriptStartup() {
         }
     }
 
+    //object used to set Pixi text object style
+    var style = {
+        font: "bold 10pt Arial",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 3,
+        fill : "#FF0000",
+    };
+
     //Pixi text object containing the regrab message
     var FCtext = new PIXI.Text("We Need Regrab!", style);
     FCtext.visible = false;
@@ -100,9 +106,7 @@ function scriptStartup() {
     //flag starts out in base
     var enemyFlagTaken = false;
 
-    //(team -> red = 1, blue = 2), get value from the Player object's team property
-    var teamValue = tagpro.players[tagpro.playerId].team;
-    var regrabCoords = findRegrabCoords();
+
 
     //listen for all grabbed/dropped flag updates for player's own team
     tagpro.socket.on("p", function(allupdates) {
@@ -125,10 +129,11 @@ function scriptStartup() {
                 }
             }
 
-            //if player switches team (red = 1, blue = 2), switch teamValue, where 1 becomes 2 and 2 becomes 1
+            //if player switches team, switch teamValue
+            //red + blue = some odd number, so subtracting by the current team will return the new team
             if (update.hasOwnProperty("team") && update.id === tagpro.playerId) {
-                teamValue = 3 - teamValue;
-                enemyFlag = findRegrabCoords();
+                teamValue = (red + blue) - teamValue;
+                enemyFlag = findRegrabCoords(teamValue);
             }
         });
     });
@@ -139,7 +144,7 @@ function scriptStartup() {
         FCtext.x = ((tagpro.ui.sprites.redScore.x + tagpro.ui.sprites.blueScore.x)/2) - (FCtext.width/2);
         FCtext.y = ((tagpro.ui.sprites.redScore.y + tagpro.ui.sprites.blueScore.y)/2) - (FCtext.height/2);
         alignUI.apply(null, arguments);
-    }
+    };
 
     //determine what message to display and update our regrab sprite every time the UI updates
     var updateUI = tagpro.ui.update;
