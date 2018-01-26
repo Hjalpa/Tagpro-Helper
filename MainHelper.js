@@ -54,17 +54,6 @@ var inline_src = (<><![CDATA[
         const YELLOW_FLAG = 16;
         const YELLOW_FLAG_TAKEN = 16.1;
 
-        //returns correct coordinates for flag of opposing teamteam
-        function findEnemyFlag(flags, teamValue) {
-            if (neutralFlag) {
-                return flags.yellow;
-            } else if (teamValue === RED) {
-                return flags.blue;
-            } else {
-                return flags.red;
-            }
-        }
-
         //find flag location for flags
         //the tagpro.map x and y represent tiles that are 40 by 40 pixels
         //To get pixel value, times by 40 to get bottom left corner and add 20 to x and y to get center pixel value
@@ -113,7 +102,6 @@ var inline_src = (<><![CDATA[
         var neutralFlag = false; //indicates if this a neutral (1-Flag game) or 2-Flag game
         updateFlagLocations(flags);
         var enemyTeam = neutralFlag ? YELLOW : RED + BLUE - teamValue;
-        var enemyFlag = findEnemyFlag(flags, teamValue);
 
         // objects used to set Pixi text object style
         var onRegrabStyle = {
@@ -121,7 +109,7 @@ var inline_src = (<><![CDATA[
             align: "center",
             stroke: "#000000",
             strokeThickness: 3,
-            fill : "#FF0000",
+            fill: "#00FF00"
         };
 
         var needRegrabStyle = {
@@ -129,7 +117,7 @@ var inline_src = (<><![CDATA[
             align: "center",
             stroke: "#000000",
             strokeThickness: 3,
-            fill : "#FF9900",
+            fill: "#FF9900"
         };
 
         //Pixi text object containing the regrab message
