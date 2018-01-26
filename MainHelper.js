@@ -33,53 +33,61 @@ var inline_src = (<><![CDATA[
         }
     }
 
-
     //function that will be passed into addToTagpro
     function scriptStartup() {
 
+        // Tagpro values
+        const YELLOW = 0;
+        const RED = 1;
+        const BLUE = 2;
+        const NUM_FLAGS = 3;
+        const ALLOWABLE_REGRAB_TILES = 2;
+        const TILE_PIXELS = 40; //width/height of tagpro tile in pixels
+        const NEED_REGRAB_MESSAGE = "We Need Regrab!";
+        const ON_RE = "RE: ";
+
+        //flag constags
+        const RED_FLAG = 3;
+        const RED_FLAG_TAKEN = 3.1;
+        const BLUE_FLAG = 4;
+        const BLUE_FLAG_TAKEN = 4.1;
+        const YELLOW_FLAG = 16;
+        const YELLOW_FLAG_TAKEN = 16.1;
+
         //returns correct coordinates for flag of opposing teamteam
-        function findEnemyFlag(flagLocations, teamValue) {
+        function findEnemyFlag(flags, teamValue) {
             if (neutralFlag) {
-                return flagLocations.yellow;
-            } else if (teamValue === red) {
-                return flagLocations.blue;
+                return flags.yellow;
+            } else if (teamValue === RED) {
+                return flags.blue;
             } else {
-                return flagLocations.red;
+                return flags.red;
             }
         }
 
         //find flag location for flags
         //the tagpro.map x and y represent tiles that are 40 by 40 pixels
         //To get pixel value, times by 40 to get bottom left corner and add 20 to x and y to get center pixel value
-
-        function updateFlagLocations(flagLocations) {
+        function updateFlagLocations(flags) {
             for (var i = 0; i<xlen; i++) {
                 for (var j = 0; j<ylen; j++) {
-                    if (tagpro.map[i][j] === 3 || tagpro.map[i][j] === 3.1) {
-                        flagLocations.red.x = i*TILE_PIXELS;
-                        flagLocations.red.y = j*TILE_PIXELS;
+                    if (tagpro.map[i][j] === RED_FLAG || tagpro.map[i][j] === RED_FLAG_TAKEN) {
+                        flags[RED].x = i*TILE_PIXELS;
+                        flags[RED].y = j*TILE_PIXELS;
                     }
-                    if (tagpro.map[i][j] === 4 || tagpro.map[i][j] === 4.1) {
-                        flagLocations.blue.x = i*TILE_PIXELS;
-                        flagLocations.blue.y = j*TILE_PIXELS;
+                    if (tagpro.map[i][j] === BLUE_FLAG || tagpro.map[i][j] === BLUE_FLAG_TAKEN) {
+                        flags[BLUE].x = i*TILE_PIXELS;
+                        flags[BLUE].y = j*TILE_PIXELS;
                     }
-                    if (tagpro.map[i][j] === 16 || tagpro.map[i][j] === 16.1) {
-                        flagLocations.yellow.x = i*TILE_PIXELS;
-                        flagLocations.yellow.y = j*TILE_PIXELS;
+                    if (tagpro.map[i][j] === YELLOW_FLAG || tagpro.map[i][j] === YELLOW_FLAG_TAKEN) {
+                        flags[YELLOW].x = i*TILE_PIXELS;
+                        flags[YELLOW].y = j*TILE_PIXELS;
                         neutralFlag = true;
                     }
                 }
             }
-            return flagLocations;
+            return flags;
         }
-
-        // Tagpro values
-        const RED = 1;
-        const BLUE = 2;
-        const ALLOWABLE_REGRAB_TILES = 2;
-        const TILE_PIXELS = 40; //width/height of tagpro tile in pixels
-        const REGRAB_MESSAGE = "We Need Regrab!";
-        const ON_RE = "RE: ";
 
         //get parameters of the map
         var xlen = tagpro.map.length;
@@ -87,32 +95,26 @@ var inline_src = (<><![CDATA[
 
         //other game stats
         var playerID = tagpro.playerId;
-        var neutralFlag = false; //indicates if this a neutral (1-Flag game) or 2-Flag game
-        var enemyFlagTaken = false; //flag starts out in base
-        var ownFlagTake = false;
         var teamValue = tagpro.players[playerID].team; //get value from the Player object's team property
 
-        //object holding flag locations
-        var flagLocations = {
-            red : {
+        // initialize flags
+        // the flag index in the array corresponds to the flags value
+        // aka flags[0] = yellow, flags[1] =red, flags[2] = blue
+        var flags = [];
+        for (let i = 0; i < NUM_FLAGS; i++) {
+            flags.push({
                 x : -1,
-                y : -1
-            },
-            blue : {
-                x : -1,
-                y : -1
-            },
-            yellow : {
-                x : -1,
-                y : -1
-            }
-        };
+                y : -1,
+                captured: false,
+            });
+        }
         //set flagLocations
-        updateFlagLocations(flagLocations);
-        var enemyFlag = findEnemyFlag(flagLocations, teamValue);
+        var neutralFlag = false; //indicates if this a neutral (1-Flag game) or 2-Flag game and is set in updateFlagLocations
+        updateFlagLocations(flags);
+        var enemyFlag = findEnemyFlag(flags, teamValue);
+        var enemyTeam = neutralFlag ? YELLOW : RED + BLUE - teamValue;
 
-
-        //object used to set Pixi text object style
+        // objects used to set Pixi text object style
         var onRegrabStyle = {
             font: "bold 10pt Arial",
             align: "center",
@@ -130,7 +132,7 @@ var inline_src = (<><![CDATA[
         };
 
         //Pixi text object containing the regrab message
-        var FCtext = new PIXI.Text(REGRAB_MESSAGE, needRegrabStyle);
+        var FCtext = new PIXI.Text(NEED_REGRAB_MESSAGE, needRegrabStyle);
         FCtext.visible = false;
         tagpro.renderer.layers.ui.addChild(FCtext);
 
@@ -141,19 +143,22 @@ var inline_src = (<><![CDATA[
             updates.forEach( function checkflagplayer(update) {
                 if (update.hasOwnProperty("flag")) {
                     //use id from update to get team value for the specific player update is applied to get team value of self
-                    var playerTeam = tagpro.players[update.id].team;
-                    if (playerTeam === RED && update.flag) {
-                        redFlagTaken = true;
+                    var flagID = neutralFlag ? YELLOW : tagpro.players[update.id].team;
+                    var flagTaken = false;
+                    if (update.flag) {
+                        flagTaken = true;
+                        FCtext.visible = true;
                     } else {
-                        enemyFlagTaken = false;
+                        FCtext.visible = false;
                     }
+                    flags[flagID].captured = flagTaken;
                 }
 
-                //if player switches team, switch teamValue
+                //if player switches team, switch teamValue and update enemy flag
                 //red + blue = some odd number, so subtracting by the current team will return the new team
                 if (update.hasOwnProperty("team") && update.id === playerID) {
+                    enemyTeam = neutralFlag ? YELLOW : teamValue;
                     teamValue = (RED + BLUE) - teamValue;
-                    enemyFlag = findEnemyFlag(teamValue);
                 }
             });
         });
@@ -169,7 +174,8 @@ var inline_src = (<><![CDATA[
         //determine what message to display and update our regrab sprite every time the UI updates
         var updateUI = tagpro.ui.update;
         tagpro.ui.update = function(layer, origin) {
-            if (enemyFlagTaken) {
+            var flagID = neutralFlag ? YELLOW : tagpro.players[update.id].team;
+            if (flags[flagID].captured) {
                 var foundRe = false;
                 //tagpro.players contains 1 Player object for each player, whose unique id is the key inside tagpro.players object
                 //loop through the players inside tagpro.players, searching for teammate on "regrab" (within 2 tiles f flag in x and y direction)
@@ -178,15 +184,13 @@ var inline_src = (<><![CDATA[
                         var player = tagpro.players[id];
                         //confirm player is on your team
                         if (player.team === teamValue) {
-
-                            var x_dist = Math.abs(player.x - enemyFlag.x);
-                            var y_dist = Math.abs(player.y - enemyFlag.y);
-
+                            var x_dist = Math.abs(player.x - flags[enemyTeam].x);
+                            var y_dist = Math.abs(player.y - flags[enemyTeam].y);
                             //check to see if player is within allowable number of tiles (40 pixels each) in both x and y directions
-                            if (x_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && y_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && !player.flag) {
+                            if (x_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && y_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS) { //&& !player.flag
                                 foundRe = true;
                                 FCtext.setText(ON_RE + player.name );
-                                FCtext.setStyle(style);
+                                FCtext.setStyle(onRegrabStyle);
                             }
                         }
                     }
@@ -194,8 +198,8 @@ var inline_src = (<><![CDATA[
 
                //if no one is one regrab, update text object and set visible to true
                 if (!foundRe) {
-                    FCtext.setText(TILE_PIXELS);
-                    FCtext.setStyle(regrabStyle);
+                    FCtext.setText(NEED_REGRAB_MESSAGE);
+                    FCtext.setStyle(needRegrabStyle);
                     FCtext.visible = true;
                 }
             }
