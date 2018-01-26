@@ -108,11 +108,12 @@ var inline_src = (<><![CDATA[
                 captured: false,
             });
         }
+
         //set flagLocations
-        var neutralFlag = false; //indicates if this a neutral (1-Flag game) or 2-Flag game and is set in updateFlagLocations
+        var neutralFlag = false; //indicates if this a neutral (1-Flag game) or 2-Flag game
         updateFlagLocations(flags);
-        var enemyFlag = findEnemyFlag(flags, teamValue);
         var enemyTeam = neutralFlag ? YELLOW : RED + BLUE - teamValue;
+        var enemyFlag = findEnemyFlag(flags, teamValue);
 
         // objects used to set Pixi text object style
         var onRegrabStyle = {
@@ -187,7 +188,7 @@ var inline_src = (<><![CDATA[
                             var x_dist = Math.abs(player.x - flags[enemyTeam].x);
                             var y_dist = Math.abs(player.y - flags[enemyTeam].y);
                             //check to see if player is within allowable number of tiles (40 pixels each) in both x and y directions
-                            if (x_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && y_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS) { //&& !player.flag
+                            if (x_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && y_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS ) { //&& !player.flag
                                 foundRe = true;
                                 FCtext.setText(ON_RE + player.name );
                                 FCtext.setStyle(onRegrabStyle);
