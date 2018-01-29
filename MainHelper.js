@@ -17,11 +17,7 @@
 //registers our function with the game by passing it into tagpro.ready when the objects we need are initialized
 //tagpro.ready registers our_function and calls it when the game is ready for userscripts to execute
 
-/* jshint ignore:start */
 var inline_src = (<><![CDATA[
-    /* jshint ignore:end */
-    /* jshint esnext: false */
-    /* jshint esversion: 6 */
     function addToTagpro(helperScript) {
         if (typeof tagpro.map !== "undefined" && typeof tagpro.ui.sprites.redScore !== "undefined") {
             tagpro.ready(helperScript);
@@ -208,8 +204,6 @@ var inline_src = (<><![CDATA[
     //call addToTagpro
     addToTagpro(scriptStartup);
 
-/* jshint ignore:start */
 ]]></>).toString();
 var c = Babel.transform(inline_src, { presets: [ "es2015", "es2016" ] });
 eval(c.code);
-/* jshint ignore:end */
