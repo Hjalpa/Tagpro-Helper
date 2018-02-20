@@ -1,30 +1,31 @@
 // ==UserScript==
-// @name        Tagpro ReGrab Checker
-// @namespace   seanf80
-// @version     1.0
+// @name        Tagpro Helper
+// @namespace   sflem1993
+// @version     1.2
 // @include     http://tagpro-*.koalabeast.com:*
 // @include     http://tagpro-maptest.koalabeast.com:*/
 // @include     http://tangent.jukejuice.com:*
 // @include     http://maptest*.newcompte.fr:*
-// @require      https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.18.2/babel.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/6.16.0/polyfill.js
-// @match        http://*/*
+// @require     https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.18.2/babel.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/6.16.0/polyfill.js
+// @match       http://*/*
 // @grant       none
 // ==/UserScript==
 
-
-
 //registers our function with the game by passing it into tagpro.ready when the objects we need are initialized
 //tagpro.ready registers our_function and calls it when the game is ready for userscripts to execute
-
+//inline_src/Babel compilation is copied from Tampermonkey template to make installation of this script possible
+/* jshint ignore:start */
 var inline_src = (<><![CDATA[
+/* jshint ignore:end */
+
     function addToTagpro(helperScript) {
         if (typeof tagpro.map !== "undefined" && typeof tagpro.ui.sprites.redScore !== "undefined") {
             tagpro.ready(helperScript);
         } else {
             //if not ready, wait and try again
             setTimeout(() => {
-                addToTagpro(helperScript)
+                addToTagpro(helperScript);
             }, 100);
         }
     }
@@ -105,7 +106,9 @@ var inline_src = (<><![CDATA[
 
         // objects used to set Pixi text object style
         var onRegrabStyle = {
-            font: "bold 10pt Arial",
+            fontSize: 18,
+            fontWeight: 'bold',
+            fontFamily: 'Arial',
             align: "center",
             stroke: "#000000",
             strokeThickness: 3,
@@ -113,7 +116,9 @@ var inline_src = (<><![CDATA[
         };
 
         var needRegrabStyle = {
-            font: "bold 14pt Arial",
+            fontSize: 20,
+            fontWeight: 'bold',
+            fontFamily: 'Arial',
             align: "center",
             stroke: "#000000",
             strokeThickness: 3,
@@ -126,19 +131,22 @@ var inline_src = (<><![CDATA[
         tagpro.renderer.layers.ui.addChild(needRegrabPixi);
 
         //listen for all grabbed/dropped flag updates for player's own team
-        tagpro.socket.on("p", function(info) {
+        tagpro.socket.on("p", (info) => {
             //the property u is an array that contains all updates to be applied to players
             let updates = info.u || info;
-            updates.forEach( function checkflagplayer(update) {
+            updates.forEach((update) => {
                 if (update.hasOwnProperty("flag")) {
                     //get flagid from team value for the player
-                    var flagID = gameState.neutralFlag ? YELLOW : RED + BLUE - tagpro.players[update.id].team;
+                    var updatedPlayerTeam = tagpro.players[update.id].team;
+                    var flagID = gameState.neutralFlag ? YELLOW : RED + BLUE - updatedPlayerTeam;
                     var flagTaken = false;
-                    if (update.flag) {
-                        flagTaken = true;
-                        needRegrabPixi.visible = true;
-                    } else {
-                        needRegrabPixi.visible = false;
+                    if (updatedPlayerTeam === teamValue) {
+                        if (update.flag) {
+                            flagTaken = true;
+                            needRegrabPixi.visible = true;
+                        } else {
+                            needRegrabPixi.visible = false;
+                        }
                     }
                     gameState.flags[flagID].captured = flagTaken;
                 }
@@ -149,8 +157,7 @@ var inline_src = (<><![CDATA[
                     let temp = enemyTeamID;
                     enemyTeamID = teamValue;
                     teamValue = temp;
-                    if (!gameState.neutralFlag)
-                    {
+                    if (!gameState.neutralFlag) {
                         regrabFlagID = enemyTeamID;
                     }
                 }
@@ -159,7 +166,7 @@ var inline_src = (<><![CDATA[
 
         //update x and y so that our regrab sprite is always centered between the red and blue scores
         var alignUI = tagpro.ui.alignUI;
-        tagpro.ui.alignUI = function() {
+        tagpro.ui.alignUI = () => {
             needRegrabPixi.x = ((tagpro.ui.sprites.redScore.x + tagpro.ui.sprites.blueScore.x)/2) - (needRegrabPixi.width/2);
             needRegrabPixi.y = ((tagpro.ui.sprites.redScore.y + tagpro.ui.sprites.blueScore.y)/2) - (needRegrabPixi.height/2);
             alignUI.apply(null, arguments);
@@ -183,17 +190,17 @@ var inline_src = (<><![CDATA[
                             //check to see if player is within allowable number of tiles (40 pixels each) in both x and y directions
                             if (x_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && y_dist <= ALLOWABLE_REGRAB_TILES*TILE_PIXELS && !player.flag) {
                                 foundTeamRe = true;
-                                needRegrabPixi.setText(ON_RE + player.name);
-                                needRegrabPixi.setStyle(onRegrabStyle);
+                                needRegrabPixi.text = ON_RE + player.name;
+                                needRegrabPixi.style = onRegrabStyle;
                             }
                         }
                     }
                 }
 
-               //if no one is one regrab, update text object and set visible to true
+               //if no one is one regrab, update text object
                 if (!foundTeamRe) {
-                    needRegrabPixi.setText(NEED_REGRAB_MESSAGE);
-                    needRegrabPixi.setStyle(needRegrabStyle);
+                    needRegrabPixi.text = NEED_REGRAB_MESSAGE;
+                    needRegrabPixi.style = needRegrabStyle;
                 }
             }
             updateUI.apply(null, arguments);
@@ -204,6 +211,8 @@ var inline_src = (<><![CDATA[
     //call addToTagpro
     addToTagpro(scriptStartup);
 
+/* jshint ignore:start */
 ]]></>).toString();
 var c = Babel.transform(inline_src, { presets: [ "es2015", "es2016" ] });
 eval(c.code);
+/* jshint ignore:end */
