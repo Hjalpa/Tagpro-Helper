@@ -11,4 +11,5 @@ This script creates a Pixi.js text object and places it relative to the game's s
 
 The player only receives map updates for tiles his character can see, while player updates are received regardless, which is why player updates is the better option for monitoring flag states.
 
-![Imgur](https://imgur.com/a/UdLsO.png)
+![Imgur](https://i.imgur.com/YD49jZy.png)
+![Imgur](https://i.imgur.com/wEoYNFi.png)
